@@ -408,7 +408,7 @@ function initializePortal() {
     const hasImage = Boolean(currentImage);
     elements.retry.hidden = !hasImage;
     elements.direct.hidden = !hasImage;
-    document.title = "Imgur Image Portal";
+    document.title = "Imgur Portal";
     scrollViewerIntoView();
   }
 
@@ -454,7 +454,7 @@ function initializePortal() {
     elements.openRelay.href = imageUrl;
     elements.openOriginal.href = normalized.sourceUrl;
     elements.input.setAttribute("aria-invalid", "false");
-    document.title = `${normalized.id}.${normalized.extension} · Imgur Image Portal`;
+    document.title = `${normalized.id}.${normalized.extension} · Imgur Portal`;
   }
 
   async function displayImage(rawValue, { updateLocation = true, forceRelay = false, direct = false } = {}) {
@@ -465,7 +465,7 @@ function initializePortal() {
     let normalized;
     try {
       currentImage = null;
-      document.title = "Imgur Image Portal";
+      document.title = "Imgur Portal";
       normalized = normalizeImgurUrl(rawValue);
       currentImage = normalized;
       elements.input.setAttribute("aria-invalid", "false");
@@ -551,7 +551,7 @@ function initializePortal() {
     elements.input.setAttribute("aria-invalid", "false");
     elements.viewer.setAttribute("aria-busy", "false");
     elements.viewer.hidden = true;
-    document.title = "Imgur Image Portal";
+    document.title = "Imgur Portal";
   }
 
   elements.form.addEventListener("submit", (event) => {

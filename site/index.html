@@ -3,157 +3,75 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#0b1316">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#ffffff">
     <meta name="referrer" content="no-referrer">
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://camo.githubusercontent.com https://i.imgur.com; connect-src https://api.github.com; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests"
     >
-    <meta name="description" content="Open a direct Imgur image through GitHub's anonymized image relay.">
-    <title>Imgur Image Portal</title>
+    <meta name="description" content="View a direct Imgur image through GitHub Camo.">
+    <title>Imgur Portal</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./styles.css">
     <script type="module" src="./app.js"></script>
   </head>
   <body>
-    <div class="page-glow page-glow-one" aria-hidden="true"></div>
-    <div class="page-glow page-glow-two" aria-hidden="true"></div>
-
-    <header class="site-header">
-      <a class="brand" href="./" aria-label="Imgur Image Portal home">
-        <img src="./favicon.svg" width="34" height="34" alt="">
-        <span>Image Portal</span>
-      </a>
-      <span class="scope-pill">Direct images only</span>
-    </header>
-
-    <main>
-      <section class="hero" aria-labelledby="hero-title">
-        <p class="eyebrow"><span aria-hidden="true"></span> GitHub-powered image relay</p>
-        <h1 id="hero-title">Give an Imgur image<br>a different way through.</h1>
-        <p class="hero-copy">
-          Paste a direct image link. The portal validates it, asks GitHub for an anonymized Camo URL,
-          and displays the result without your browser contacting Imgur for the relayed image.
-        </p>
-
-        <form id="portal-form" class="portal-form" novalidate>
-          <label for="imgur-url">Imgur image URL</label>
-          <div class="input-row">
-            <input
-              id="imgur-url"
-              type="url"
-              inputmode="url"
-              autocomplete="off"
-              spellcheck="false"
-              maxlength="2048"
-              placeholder="https://i.imgur.com/AbCdE12.jpg"
-              aria-describedby="form-help"
-              aria-errormessage="error-message"
-              aria-invalid="false"
-              required
-            >
-            <button id="submit-button" class="button button-primary" type="submit">
-              <span>Relay image</span>
-              <span aria-hidden="true">↗</span>
-            </button>
-          </div>
-          <div id="form-help" class="form-help">
-            <span>Also accepts a simple link such as <code>imgur.com/AbCdE12</code>.</span>
-            <button id="example-button" class="text-button" type="button">Use a working example</button>
-          </div>
-        </form>
-
-        <div class="privacy-note">
-          <span class="privacy-icon" aria-hidden="true">◇</span>
-          <p><strong>No accounts or project database.</strong> No analytics or uploads. GitHub and browser caching and logs still apply.</p>
+    <main class="page">
+      <form id="portal-form" class="prompt" novalidate>
+        <label for="imgur-url">insert imgur url here:</label>
+        <div class="input-row">
+          <input
+            id="imgur-url"
+            type="url"
+            inputmode="url"
+            autocomplete="off"
+            spellcheck="false"
+            maxlength="2048"
+            aria-describedby="form-help"
+            aria-errormessage="error-message"
+            aria-invalid="false"
+            required
+          >
+          <button id="submit-button" type="submit">go</button>
         </div>
-      </section>
+        <p id="form-help" class="visually-hidden">Enter a direct i.imgur.com image URL or a simple imgur.com image link.</p>
+        <button id="example-button" type="button" hidden>use example</button>
+      </form>
 
       <section id="viewer" class="viewer" aria-labelledby="viewer-title" aria-busy="false" hidden>
-        <div class="viewer-heading">
-          <div>
-            <p class="eyebrow"><span aria-hidden="true"></span> Viewer</p>
-            <h2 id="viewer-title">Your image</h2>
-          </div>
-          <span id="relay-badge" class="relay-badge" role="status" aria-live="polite" aria-atomic="true">Preparing relay</span>
+        <h1 id="viewer-title" class="visually-hidden">image viewer</h1>
+        <span id="relay-badge" class="status" role="status" aria-live="polite" aria-atomic="true">preparing relay</span>
+
+        <div id="loading-panel" class="message-panel">
+          <p>loading...</p>
+          <p id="loading-source" class="source"></p>
         </div>
 
-        <div id="loading-panel" class="state-panel loading-panel">
-          <div class="loader" aria-hidden="true"><span></span><span></span><span></span></div>
-          <div>
-            <h3>Asking GitHub for a relay URL…</h3>
-            <p id="loading-source" class="source-text"></p>
-          </div>
-        </div>
-
-        <div id="media-panel" class="media-panel" hidden>
+        <div id="media-panel" hidden>
           <a id="image-link" class="image-stage" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open the displayed image in a new tab">
             <img id="media-image" alt="" decoding="async" referrerpolicy="no-referrer">
           </a>
           <div class="media-meta">
-            <div>
-              <span id="media-dimensions" class="meta-label"></span>
-              <p id="canonical-source" class="source-text"></p>
-            </div>
-            <div class="action-row">
-              <button id="copy-link" class="button button-secondary" type="button">Copy portal link</button>
-              <a id="open-relay" class="button button-secondary" href="#" target="_blank" rel="noopener noreferrer">Open image</a>
-              <a id="open-original" class="button button-quiet" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open the original image by contacting Imgur directly">Original via Imgur ↗</a>
+            <span id="media-dimensions"></span>
+            <p id="canonical-source" class="source"></p>
+            <div class="actions">
+              <button id="copy-link" type="button" aria-live="polite">copy portal link</button>
+              <a id="open-relay" href="#" target="_blank" rel="noopener noreferrer">open image</a>
+              <a id="open-original" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open the original image by contacting Imgur directly">original via imgur</a>
             </div>
           </div>
         </div>
 
-        <div id="error-panel" class="state-panel error-panel" role="alert" hidden>
-          <span class="error-mark" aria-hidden="true">!</span>
-          <div>
-            <h3 id="error-title">That image could not be relayed.</h3>
-            <p id="error-message"></p>
-            <div class="action-row error-actions">
-              <button id="retry-relay" class="button button-secondary" type="button">Retry relay</button>
-              <button id="try-direct" class="button button-quiet" type="button">Try direct (contacts Imgur)</button>
-            </div>
+        <div id="error-panel" class="message-panel error" role="alert" hidden>
+          <h2 id="error-title">could not load image</h2>
+          <p id="error-message"></p>
+          <div class="actions">
+            <button id="retry-relay" type="button">retry</button>
+            <button id="try-direct" type="button">try direct (contacts imgur)</button>
           </div>
         </div>
       </section>
-
-      <section class="explanation" aria-labelledby="explanation-title">
-        <div class="explanation-intro">
-          <p class="eyebrow"><span aria-hidden="true"></span> What happens</p>
-          <h2 id="explanation-title">Narrow by design.</h2>
-          <p>This is an image viewer, not an open proxy. It accepts only exact Imgur hosts and conservative image paths.</p>
-        </div>
-        <ol class="steps">
-          <li>
-            <span class="step-number">01</span>
-            <h3>Validate</h3>
-            <p>Reject deceptive hosts, credentials, ports, galleries, albums, videos, and unsupported files.</p>
-          </li>
-          <li>
-            <span class="step-number">02</span>
-            <h3>Relay</h3>
-            <p>Use GitHub's public Markdown endpoint to obtain an anonymized Camo image URL.</p>
-          </li>
-          <li>
-            <span class="step-number">03</span>
-            <h3>Verify</h3>
-            <p>Check the returned host and encoded source before the browser is allowed to load it.</p>
-          </li>
-        </ol>
-      </section>
-
-      <aside class="disclosure">
-        <p>
-          <strong>Independent utility.</strong> Not affiliated with or endorsed by Imgur or GitHub.
-          GitHub sees the relay requests, Camo URLs are not secret, browser and Camo caches may persist, and availability is best-effort.
-          Only view or share content you are permitted to access.
-        </p>
-      </aside>
     </main>
-
-    <footer>
-      <span>Built without trackers.</span>
-      <a href="https://github.com/ParadoxGods/imgur-redirect" target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub (opens in a new tab)">Source on GitHub ↗</a>
-    </footer>
   </body>
 </html>

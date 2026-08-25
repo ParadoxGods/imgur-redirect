@@ -1,0 +1,15 @@
+{
+  "name": "imgur-image-portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A narrow GitHub Pages portal for relaying direct Imgur images through GitHub Camo.",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check site/app.js && node --test",
+    "test:live": "node scripts/live-check.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'">
+    <title>Opening Image Portal…</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+      body { display: grid; min-height: 100vh; margin: 0; place-items: center; color: #dff8f0; background: #091114; }
+      p { padding: 24px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <p>Opening the Image Portal…</p>
+    <script>
+      (() => {
+        const path = window.location.pathname;
+        let basePath = "/";
+        let source = null;
+
+        const imageMarker = path.lastIndexOf("/i/");
+        const viewMarker = path.lastIndexOf("/view/");
+        const httpsMarker = path.indexOf("/https://");
+        const httpMarker = path.indexOf("/http://");
+
+        if (imageMarker >= 0) {
+          basePath = path.slice(0, imageMarker + 1);
+          const mediaPath = path.slice(imageMarker + 3);
+          if (/^[A-Za-z0-9]{5,32}\.(?:jpe?g|png|gif|gifv|webp)$/i.test(mediaPath)) {
+            source = `https://i.imgur.com/${mediaPath}`;
+          }
+        } else if (viewMarker >= 0) {
+          basePath = path.slice(0, viewMarker + 1);
+          try {
+            source = decodeURIComponent(path.slice(viewMarker + 6));
+          } catch {
+            source = null;
+          }
+        } else if (httpsMarker >= 0 || httpMarker >= 0) {
+          const marker = httpsMarker >= 0 ? httpsMarker : httpMarker;
+          basePath = path.slice(0, marker + 1);
+          source = path.slice(marker + 1);
+        } else if (window.location.hostname.endsWith(".github.io")) {
+          const firstSegment = path.split("/").filter(Boolean)[0];
+          basePath = firstSegment ? `/${firstSegment}/` : "/";
+        }
+
+        const destination = new URL(basePath, window.location.origin);
+        if (source) destination.hash = `url=${encodeURIComponent(source)}`;
+        window.location.replace(destination.href);
+      })();
+    </script>
+  </body>
+</html>

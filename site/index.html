@@ -26,6 +26,8 @@
             type="url"
             inputmode="url"
             autocomplete="off"
+            autocapitalize="none"
+            enterkeyhint="go"
             spellcheck="false"
             maxlength="2048"
             aria-describedby="form-help"
@@ -33,7 +35,7 @@
             aria-invalid="false"
             required
           >
-          <button id="submit-button" type="submit">go</button>
+          <button id="submit-button" type="submit">view</button>
         </div>
         <p id="form-help" class="visually-hidden">Enter a direct i.imgur.com image URL or a simple imgur.com image link.</p>
         <button id="example-button" type="button" hidden>use example</button>
@@ -56,9 +58,9 @@
             <span id="media-dimensions"></span>
             <p id="canonical-source" class="source"></p>
             <div class="actions">
-              <button id="copy-link" type="button" aria-live="polite">copy portal link</button>
+              <button id="share-link" class="primary-action" type="button" hidden>share</button>
+              <button id="copy-link" type="button" aria-live="polite">copy link</button>
               <a id="open-relay" href="#" target="_blank" rel="noopener noreferrer">open image</a>
-              <a id="open-original" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open the original image by contacting Imgur directly">original via imgur</a>
             </div>
           </div>
         </div>

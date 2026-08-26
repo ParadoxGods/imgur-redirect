@@ -101,6 +101,16 @@ button:hover,
   background: #111;
 }
 
+.primary-action {
+  color: #fff;
+  background: #111;
+}
+
+.primary-action:hover {
+  color: #111;
+  background: #fff;
+}
+
 button:focus-visible,
 .actions a:focus-visible,
 .image-stage:focus-visible {

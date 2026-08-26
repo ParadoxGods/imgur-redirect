@@ -68,6 +68,15 @@ test("extracts query and fragment URL forms with query precedence", () => {
   assert.equal(extractSourceFromLocation(`https://example.test/app/#url=${encoded}`), SOURCE);
   assert.equal(extractSourceFromLocation(`https://example.test/app/#${encoded}`), SOURCE);
   assert.equal(extractSourceFromLocation(`https://example.test/app/#${SOURCE}`), SOURCE);
+  assert.equal(extractSourceFromLocation("https://example.test/app/#eScxuDz.jpg"), SOURCE);
+  assert.equal(
+    extractSourceFromLocation("https://example.test/app/#eScxuDz.JPEG"),
+    "https://i.imgur.com/eScxuDz.jpeg"
+  );
+  assert.equal(
+    extractSourceFromLocation("https://example.test/app/#eScxuDz.GIFV"),
+    "https://i.imgur.com/eScxuDz.gif"
+  );
   assert.equal(
     extractSourceFromLocation(`https://example.test/app/?url=${encoded}#url=${encodeURIComponent("https://i.imgur.com/other.jpg")}`),
     SOURCE
@@ -75,10 +84,29 @@ test("extracts query and fragment URL forms with query precedence", () => {
   assert.equal(extractSourceFromLocation("https://example.test/app/"), null);
 });
 
-test("builds fragment-based share links and removes index/query state", () => {
+test("compact fragments expand only conservative image tokens", () => {
+  for (const fragment of ["../../x.jpg", "abcd.jpg", "eScxuDz%2f.jpg", "eScxuDz.svg", "eScxuDz.mp4", "eScxuDz.jpg?x=1"]) {
+    const extracted = extractSourceFromLocation(`https://example.test/app/#${fragment}`);
+    assert.notEqual(extracted, `https://i.imgur.com/${decodeURIComponent(fragment)}`);
+    assert.throws(
+      () => normalizeImgurUrl(extracted),
+      (error) => error instanceof PortalError && ["invalid_url", "invalid_host", "unsupported_type"].includes(error.code)
+    );
+  }
+});
+
+test("builds compact fragment share links and removes index/query state", () => {
   assert.equal(
     buildShareUrl(SOURCE, "https://paradoxgods.github.io/imgur-redirect/index.html?old=1#old"),
-    `https://paradoxgods.github.io/imgur-redirect/#url=${encodeURIComponent(SOURCE)}`
+    "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.jpg"
+  );
+  assert.equal(
+    buildShareUrl("https://imgur.com/eScxuDz.png", "https://paradoxgods.github.io/imgur-redirect/"),
+    "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.png"
+  );
+  assertPortalError(
+    () => buildShareUrl("https://example.test/eScxuDz.jpg", "https://paradoxgods.github.io/imgur-redirect/"),
+    "invalid_host"
   );
 });
 

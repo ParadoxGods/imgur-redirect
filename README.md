@@ -2,7 +2,7 @@
 
 A small, privacy-minded GitHub Pages viewer for direct Imgur images. It accepts an Imgur URL, asks GitHub's Markdown API for an anonymized [Camo](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-anonymized-urls) URL, and displays the image through that relay.
 
-The repository is intentionally private and Pages is not enabled yet. A normal personal GitHub Pages deployment is public even when its source repository is private, and GitHub Free only supports Pages from public repositories. Review the launch notes below before publishing.
+The portal is live at <https://paradoxgods.github.io/imgur-redirect/>. Paste a valid Imgur image URL into the field and it opens automatically, replacing any previous URL. On phones that support native sharing, choose **share**. Otherwise choose **copy link**.
 
 ## Supported links
 
@@ -12,20 +12,21 @@ The repository is intentionally private and Pages is not enabled yet. A normal p
 
 Albums, gallery posts, profile links, SVG, and video formats are rejected deliberately. Resolving them would require scraping or a separate metadata service, which is outside this portal's narrow scope.
 
-Once deployed at `https://paradoxgods.github.io/imgur-redirect/`, links can be opened in three ways:
+Links can be opened in these forms:
 
 ```text
-# Recommended: the Imgur URL stays in the browser fragment
+# Recommended compact share link
+https://paradoxgods.github.io/imgur-redirect/#AbCdE12.jpg
+
+# Older query and fragment links remain accepted
+https://paradoxgods.github.io/imgur-redirect/?url=https%3A%2F%2Fi.imgur.com%2FAbCdE12.jpg
 https://paradoxgods.github.io/imgur-redirect/#url=https%3A%2F%2Fi.imgur.com%2FAbCdE12.jpg
 
-# Also accepted
-https://paradoxgods.github.io/imgur-redirect/?url=https%3A%2F%2Fi.imgur.com%2FAbCdE12.jpg
-
-# Short direct-image route (handled by 404.html)
+# Friendly path that redirects to the compact link
 https://paradoxgods.github.io/imgur-redirect/i/AbCdE12.jpg
 ```
 
-The app converts query links to the fragment form after validation. Unlike a query or path, a fragment is not included in the initial HTTP request to GitHub Pages.
+The app converts older links to the compact fragment after validation. Unlike a query or path, a fragment is not included in the initial HTTP request to GitHub Pages. The compact format also loads the real page with HTTP 200 instead of relying on the custom 404 bridge.
 
 ## How it works
 
@@ -55,21 +56,17 @@ Then open `http://localhost:4173/`.
 
 `npm test` is entirely local. `npm run test:live` makes one request to GitHub's Markdown API and checks that Camo can return a known public Imgur image.
 
-## Publishing checklist
+## Deployment
 
-1. Review Imgur's current terms, GitHub's terms and limits, and any rights or regulatory obligations that apply to the intended audience and content. Do not use this to relay content you are not permitted to access or share.
-2. Merge the feature branch into `main`.
-3. Change the repository visibility to public. The included workflow deliberately skips every private repository, even on plans that otherwise support private-source Pages.
-4. In **Settings → Pages → Build and deployment**, choose **GitHub Actions**.
-5. Run **Deploy GitHub Pages** from the Actions tab. Future pushes to `main` will redeploy while the repository is public.
+GitHub Pages publishes `site/` through `.github/workflows/deploy-pages.yml` after changes reach `main`. The workflow also supports a manual run from the Actions tab and refuses to publish from a private repository or a non-`main` ref.
 
-The deployment workflow refuses to publish while the repository is private. This avoids accidentally creating a public Pages site during private development.
+Review Imgur's current terms, GitHub's terms and limits, and any rights or regulatory obligations that apply to the intended audience and content. Do not use this to relay content you are not permitted to access or share.
 
 ## Privacy and security
 
 - No project-operated analytics, cookies, accounts, uploads, search index, or server-side submission database.
 - The current tab keeps source-to-relay mappings in `sessionStorage` to avoid spending another API request on every reload. GitHub still logs ordinary Pages/API requests, including visitor IP addresses, and GitHub, Camo, and browsers may cache requests or images.
-- Share links use URL fragments by default.
+- Share links use compact URL fragments by default.
 - GitHub still receives the Markdown API request and the Camo image request. A Camo URL is not secret; anyone who has it can view the relayed image.
 - Input is limited to exact Imgur hostnames, HTTPS media URLs, conservative image IDs, and supported extensions. Credentials, custom ports, deceptive subdomains, and arbitrary proxy targets are rejected.
 - Returned HTML is never rendered. The app extracts and verifies the Camo URL before assigning it to an image element.

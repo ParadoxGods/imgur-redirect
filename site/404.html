@@ -19,6 +19,7 @@
         const path = window.location.pathname;
         let basePath = "/";
         let source = null;
+        let compactHash = null;
 
         const imageMarker = path.lastIndexOf("/i/");
         const viewMarker = path.lastIndexOf("/view/");
@@ -30,6 +31,7 @@
           const mediaPath = path.slice(imageMarker + 3);
           if (/^[A-Za-z0-9]{5,32}\.(?:jpe?g|png|gif|gifv|webp)$/i.test(mediaPath)) {
             source = `https://i.imgur.com/${mediaPath}`;
+            compactHash = mediaPath.replace(/\.gifv$/i, ".gif");
           }
         } else if (viewMarker >= 0) {
           basePath = path.slice(0, viewMarker + 1);
@@ -48,7 +50,11 @@
         }
 
         const destination = new URL(basePath, window.location.origin);
-        if (source) destination.hash = `url=${encodeURIComponent(source)}`;
+        if (compactHash) {
+          destination.hash = compactHash;
+        } else if (source) {
+          destination.hash = `url=${encodeURIComponent(source)}`;
+        }
         window.location.replace(destination.href);
       })();
     </script>

@@ -6,7 +6,7 @@ const MARKDOWN_ENDPOINT = "https://api.github.com/markdown";
 const GITHUB_API_VERSION = "2026-03-10";
 const RELAY_CACHE_PREFIX = "imgur-portal:camo:";
 const EXAMPLE_IMAGE = "https://i.imgur.com/eScxuDz.jpg";
-const COPY_BUTTON_LABEL = "Copy portal link";
+const COPY_BUTTON_LABEL = "copy link";
 const INPUT_ERROR_CODES = new Set([
   "missing_url",
   "url_too_long",
@@ -164,20 +164,31 @@ export function extractSourceFromLocation(locationValue) {
   const parameterSource = hashParams.get("url");
   if (parameterSource) return parameterSource;
 
+  let decodedHash;
   try {
-    return decodeURIComponent(hash);
+    decodedHash = decodeURIComponent(hash);
   } catch {
-    return hash;
+    decodedHash = hash;
   }
+
+  const compactMatch = decodedHash.match(
+    new RegExp(`^(${IMGUR_ID_PATTERN})\\.(jpe?g|png|gif|gifv|webp)$`, "i")
+  );
+  if (compactMatch) {
+    return `https://i.imgur.com/${compactMatch[1]}.${normalizeExtension(compactMatch[2])}`;
+  }
+
+  return decodedHash;
 }
 
 export function buildShareUrl(sourceUrl, locationValue) {
+  const normalized = normalizeImgurUrl(sourceUrl);
   const href = typeof locationValue === "string" ? locationValue : locationValue?.href;
   const target = new URL(href);
   target.search = "";
   target.hash = "";
   target.pathname = target.pathname.replace(/\/index\.html$/i, "/");
-  target.hash = `url=${encodeURIComponent(sourceUrl)}`;
+  target.hash = `${normalized.id}.${normalized.extension}`;
   return target.href;
 }
 
@@ -357,9 +368,9 @@ function initializePortal() {
     imageLink: document.querySelector("#image-link"),
     dimensions: document.querySelector("#media-dimensions"),
     canonicalSource: document.querySelector("#canonical-source"),
+    shareLink: document.querySelector("#share-link"),
     copyLink: document.querySelector("#copy-link"),
     openRelay: document.querySelector("#open-relay"),
-    openOriginal: document.querySelector("#open-original"),
     errorPanel: document.querySelector("#error-panel"),
     errorTitle: document.querySelector("#error-title"),
     errorMessage: document.querySelector("#error-message"),
@@ -371,7 +382,12 @@ function initializePortal() {
   let currentImage = null;
   let activeAbortController = null;
   let copyResetTimer = null;
+  let lastHandledLocation = null;
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  const canShare = typeof navigator.share === "function";
+
+  elements.shareLink.hidden = !canShare;
+  elements.copyLink.classList.toggle("primary-action", !canShare);
 
   function scrollViewerIntoView() {
     elements.viewer.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
@@ -446,18 +462,17 @@ function initializePortal() {
 
   function showMedia(normalized, imageUrl, mode) {
     updatePanels("media");
-    elements.badge.textContent = mode === "relay" ? "Relayed by GitHub Camo" : "Direct Imgur connection";
+    elements.badge.textContent = mode === "relay" ? "ready" : "direct Imgur connection";
     elements.mediaImage.alt = `Imgur image ${normalized.id}`;
     elements.dimensions.textContent = `${elements.mediaImage.naturalWidth} × ${elements.mediaImage.naturalHeight} · ${normalized.extension.toUpperCase()}`;
     elements.canonicalSource.textContent = normalized.sourceUrl;
     elements.imageLink.href = imageUrl;
     elements.openRelay.href = imageUrl;
-    elements.openOriginal.href = normalized.sourceUrl;
     elements.input.setAttribute("aria-invalid", "false");
     document.title = `${normalized.id}.${normalized.extension} · Imgur Portal`;
   }
 
-  async function displayImage(rawValue, { updateLocation = true, forceRelay = false, direct = false } = {}) {
+  async function displayImage(rawValue, { historyMode = "push", forceRelay = false, direct = false } = {}) {
     const requestId = ++activeRequest;
     activeAbortController?.abort();
     const requestController = new AbortController();
@@ -470,8 +485,13 @@ function initializePortal() {
       currentImage = normalized;
       elements.input.setAttribute("aria-invalid", "false");
       elements.input.value = normalized.sourceUrl;
-      if (updateLocation) {
-        history.replaceState(null, "", buildShareUrl(normalized.sourceUrl, window.location.href));
+      const shareUrl = buildShareUrl(normalized.sourceUrl, window.location.href);
+      if (historyMode === "replace") {
+        history.replaceState(null, "", shareUrl);
+        lastHandledLocation = window.location.href;
+      } else if (historyMode === "push" && shareUrl !== window.location.href) {
+        history.pushState(null, "", shareUrl);
+        lastHandledLocation = window.location.href;
       }
 
       showLoading(normalized, direct ? "Trying direct connection" : "Preparing relay");
@@ -513,7 +533,7 @@ function initializePortal() {
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
       await navigator.clipboard.writeText(shareUrl);
-      elements.copyLink.textContent = "Copied";
+      elements.copyLink.textContent = "copied";
     } catch {
       const fallback = document.createElement("textarea");
       fallback.value = shareUrl;
@@ -529,11 +549,24 @@ function initializePortal() {
       } finally {
         fallback.remove();
       }
-      elements.copyLink.textContent = copied ? "Copied" : "Copy failed";
+      elements.copyLink.textContent = copied ? "copied" : "copy failed";
     }
     copyResetTimer = setTimeout(() => {
       elements.copyLink.textContent = COPY_BUTTON_LABEL;
     }, 1600);
+  }
+
+  async function sharePortalLink() {
+    if (!currentImage || !canShare) return;
+    const shareUrl = buildShareUrl(currentImage.sourceUrl, window.location.href);
+    try {
+      await navigator.share({
+        title: `Imgur image ${currentImage.id}`,
+        url: shareUrl
+      });
+    } catch (error) {
+      if (error?.name !== "AbortError") await copyPortalLink();
+    }
   }
 
   function resetPortal() {
@@ -558,29 +591,47 @@ function initializePortal() {
     event.preventDefault();
     void displayImage(elements.input.value);
   });
+  elements.input.addEventListener("paste", (event) => {
+    const pastedValue = event.clipboardData?.getData("text")?.trim();
+    if (!pastedValue) return;
+    try {
+      normalizeImgurUrl(pastedValue);
+    } catch {
+      return;
+    }
+    event.preventDefault();
+    elements.input.value = pastedValue;
+    void displayImage(pastedValue);
+  });
   elements.example.addEventListener("click", () => {
     elements.input.value = EXAMPLE_IMAGE;
     void displayImage(EXAMPLE_IMAGE);
   });
+  elements.shareLink.addEventListener("click", () => void sharePortalLink());
   elements.copyLink.addEventListener("click", () => void copyPortalLink());
   elements.retry.addEventListener("click", () => {
-    if (currentImage) void displayImage(currentImage.sourceUrl, { forceRelay: true });
+    if (currentImage) void displayImage(currentImage.sourceUrl, { historyMode: "replace", forceRelay: true });
   });
   elements.direct.addEventListener("click", () => {
-    if (currentImage) void displayImage(currentImage.sourceUrl, { direct: true });
+    if (currentImage) void displayImage(currentImage.sourceUrl, { historyMode: "replace", direct: true });
   });
-  window.addEventListener("hashchange", () => {
+  function handleLocationChange() {
+    if (window.location.href === lastHandledLocation) return;
+    lastHandledLocation = window.location.href;
     const source = extractSourceFromLocation(window.location);
     if (source) {
-      void displayImage(source, { updateLocation: false });
+      void displayImage(source, { historyMode: "none" });
     } else {
       resetPortal();
     }
-  });
+  }
+
+  window.addEventListener("hashchange", handleLocationChange);
+  window.addEventListener("popstate", handleLocationChange);
 
   const initialSource = extractSourceFromLocation(window.location);
   if (initialSource) {
-    void displayImage(initialSource, { updateLocation: true });
+    void displayImage(initialSource, { historyMode: "replace" });
   }
 }
 

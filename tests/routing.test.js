@@ -33,7 +33,11 @@ function route(pathname, hostname = "paradoxgods.github.io") {
 test("404 short image routes redirect to the project root fragment", () => {
   assert.equal(
     route("/imgur-redirect/i/eScxuDz.jpg"),
-    `https://paradoxgods.github.io/imgur-redirect/#url=${encodeURIComponent("https://i.imgur.com/eScxuDz.jpg")}`
+    "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.jpg"
+  );
+  assert.equal(
+    route("/imgur-redirect/i/eScxuDz.gifv"),
+    "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.gif"
   );
 });
 

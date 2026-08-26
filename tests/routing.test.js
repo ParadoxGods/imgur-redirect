@@ -39,6 +39,10 @@ test("404 short image routes redirect to the project root fragment", () => {
     route("/imgur-redirect/i/eScxuDz.gifv"),
     "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.gif"
   );
+  assert.equal(
+    route("/imgur-redirect/i/eScxuDz.gif"),
+    "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.gif"
+  );
 });
 
 test("404 encoded and raw full-URL routes preserve the Imgur source", () => {

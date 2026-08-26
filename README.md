@@ -1,6 +1,6 @@
 # Imgur Image Portal
 
-A small, privacy-minded GitHub Pages viewer for direct Imgur images. It accepts an Imgur URL, asks GitHub's Markdown API for an anonymized [Camo](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-anonymized-urls) URL, and displays the image through that relay.
+A small, privacy-minded GitHub Pages viewer for direct Imgur images and GIFs. It accepts an Imgur URL, asks GitHub's Markdown API for an anonymized [Camo](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-anonymized-urls) URL, and displays the image through that relay.
 
 The portal is live at <https://paradoxgods.github.io/imgur-redirect/>. Paste a valid Imgur image URL into the field and it opens automatically, replacing any previous URL. On phones that support native sharing, choose **share**. Otherwise choose **copy link**.
 
@@ -10,7 +10,11 @@ The portal is live at <https://paradoxgods.github.io/imgur-redirect/>. Paste a v
 - Simple single-image pages: `https://imgur.com/AbCdE12`
 - JPEG, PNG, GIF, and WebP images
 
-Albums, gallery posts, profile links, SVG, and video formats are rejected deliberately. Resolving them would require scraping or a separate metadata service, which is outside this portal's narrow scope.
+Real `.gif` files work when Imgur serves them as `image/gif` and they fit GitHub Camo's relay limit. Large GIFs may fail with a size error. Legacy GIFV links keep their best-effort `.gif` fallback, but Imgur may return a still JPEG instead of animation.
+
+The static portal cannot look up Imgur metadata. An extensionless `imgur.com/ID` link therefore uses Imgur's `.jpg` endpoint, which may be a still preview when the original post is animated or video.
+
+Albums, gallery posts, profile links, SVG, MP4, and WebM are rejected deliberately. GitHub Camo only relays externally hosted images; it rejects MP4 bytes. True video support requires a separate, video-capable server relay and cannot be added by static GitHub Pages alone.
 
 Links can be opened in these forms:
 
@@ -54,7 +58,7 @@ python -m http.server 4173 --directory site
 
 Then open `http://localhost:4173/`.
 
-`npm test` is entirely local. `npm run test:live` makes one request to GitHub's Markdown API and checks that Camo can return a known public Imgur image.
+`npm test` is entirely local. `npm run test:live` checks that Camo can return both a known public JPEG and a small GIF with the expected content types and file signatures.
 
 ## Deployment
 
@@ -70,6 +74,6 @@ Review Imgur's current terms, GitHub's terms and limits, and any rights or regul
 - GitHub still receives the Markdown API request and the Camo image request. A Camo URL is not secret; anyone who has it can view the relayed image.
 - Input is limited to exact Imgur hostnames, HTTPS media URLs, conservative image IDs, and supported extensions. Credentials, custom ports, deceptive subdomains, and arbitrary proxy targets are rejected.
 - Returned HTML is never rendered. The app extracts and verifies the Camo URL before assigning it to an image element.
-- **Try direct** and **Original via Imgur** intentionally contact Imgur from the visitor's browser and may use applicable Imgur cookies. They are expected to fail where Imgur is unavailable.
+- **Try direct** intentionally contacts Imgur from the visitor's browser and may use applicable Imgur cookies. It is expected to fail where Imgur is unavailable.
 
 This independent utility is not affiliated with, endorsed by, or operated by Imgur or GitHub.

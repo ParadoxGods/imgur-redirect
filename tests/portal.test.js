@@ -36,7 +36,8 @@ test("accepts host-only input and simple single-image pages", () => {
   assert.equal(normalizeImgurUrl("https://m.imgur.com/download/eScxuDz").sourceUrl, SOURCE);
 });
 
-test("maps gifv pages back to an image and preserves actual image formats", () => {
+test("accepts real GIFs, preserves image formats, and keeps the legacy GIFV fallback", () => {
+  assert.equal(normalizeImgurUrl("https://i.imgur.com/eScxuDz.GIF").sourceUrl, "https://i.imgur.com/eScxuDz.gif");
   assert.equal(normalizeImgurUrl("https://i.imgur.com/eScxuDz.gifv").sourceUrl, "https://i.imgur.com/eScxuDz.gif");
   assert.equal(normalizeImgurUrl("https://i.imgur.com/eScxuDz.webp").extension, "webp");
 });
@@ -58,8 +59,23 @@ test("rejects deceptive hosts, credentials, ports, and non-web schemes", () => {
 test("rejects missing extensions, encoded path tricks, and unsupported media", () => {
   assertPortalError(() => normalizeImgurUrl("https://i.imgur.com/eScxuDz"), "not_direct_image");
   assertPortalError(() => normalizeImgurUrl("https://i.imgur.com/eScxuDz%2f.jpg"), "not_direct_image");
-  assertPortalError(() => normalizeImgurUrl("https://i.imgur.com/eScxuDz.mp4"), "unsupported_type");
+  assertPortalError(() => normalizeImgurUrl("https://i.imgur.com/eScxuDz.mp4"), "unsupported_video");
+  assertPortalError(() => normalizeImgurUrl("https://i.imgur.com/eScxuDz.webm"), "unsupported_video");
   assertPortalError(() => normalizeImgurUrl("https://i.imgur.com/eScxuDz.svg"), "unsupported_type");
+});
+
+test("rejects video before contacting the image relay", async () => {
+  let fetchCalled = false;
+  await assert.rejects(
+    requestCamoUrl("https://i.imgur.com/eScxuDz.mp4", {
+      fetchImpl: async () => {
+        fetchCalled = true;
+        return new Response();
+      }
+    }),
+    (error) => error instanceof PortalError && error.code === "unsupported_video"
+  );
+  assert.equal(fetchCalled, false);
 });
 
 test("extracts query and fragment URL forms with query precedence", () => {
@@ -69,6 +85,10 @@ test("extracts query and fragment URL forms with query precedence", () => {
   assert.equal(extractSourceFromLocation(`https://example.test/app/#${encoded}`), SOURCE);
   assert.equal(extractSourceFromLocation(`https://example.test/app/#${SOURCE}`), SOURCE);
   assert.equal(extractSourceFromLocation("https://example.test/app/#eScxuDz.jpg"), SOURCE);
+  assert.equal(
+    extractSourceFromLocation("https://example.test/app/#eScxuDz.GIF"),
+    "https://i.imgur.com/eScxuDz.gif"
+  );
   assert.equal(
     extractSourceFromLocation("https://example.test/app/#eScxuDz.JPEG"),
     "https://i.imgur.com/eScxuDz.jpeg"
@@ -95,6 +115,13 @@ test("compact fragments expand only conservative image tokens", () => {
   }
 });
 
+test("compact GIFV links preserve the legacy best-effort GIF fallback", () => {
+  assert.equal(
+    extractSourceFromLocation("https://example.test/app/#eScxuDz.gifv"),
+    "https://i.imgur.com/eScxuDz.gif"
+  );
+});
+
 test("builds compact fragment share links and removes index/query state", () => {
   assert.equal(
     buildShareUrl(SOURCE, "https://paradoxgods.github.io/imgur-redirect/index.html?old=1#old"),
@@ -103,6 +130,10 @@ test("builds compact fragment share links and removes index/query state", () => 
   assert.equal(
     buildShareUrl("https://imgur.com/eScxuDz.png", "https://paradoxgods.github.io/imgur-redirect/"),
     "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.png"
+  );
+  assert.equal(
+    buildShareUrl("https://i.imgur.com/eScxuDz.gif", "https://paradoxgods.github.io/imgur-redirect/"),
+    "https://paradoxgods.github.io/imgur-redirect/#eScxuDz.gif"
   );
   assertPortalError(
     () => buildShareUrl("https://example.test/eScxuDz.jpg", "https://paradoxgods.github.io/imgur-redirect/"),

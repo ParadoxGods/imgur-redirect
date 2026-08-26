@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#091114">
     <meta name="referrer" content="no-referrer">
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://camo.githubusercontent.com https://i.imgur.com; connect-src https://api.github.com; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests"
     >
-    <meta name="description" content="View a direct Imgur image through GitHub Camo.">
+    <meta name="description" content="View a direct Imgur image or GIF through GitHub Camo.">
     <title>Imgur Portal</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./styles.css">
@@ -35,9 +35,9 @@
             aria-invalid="false"
             required
           >
-          <button id="submit-button" type="submit">view</button>
+          <button id="submit-button" class="primary-action" type="submit">view</button>
         </div>
-        <p id="form-help" class="visually-hidden">Enter a direct i.imgur.com image URL or a simple imgur.com image link.</p>
+        <p id="form-help" class="visually-hidden">Enter a direct i.imgur.com image or GIF URL, or a simple imgur.com image link.</p>
         <button id="example-button" type="button" hidden>use example</button>
       </form>
 
@@ -53,6 +53,7 @@
         <div id="media-panel" hidden>
           <a id="image-link" class="image-stage" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open the displayed image in a new tab">
             <img id="media-image" alt="" decoding="async" referrerpolicy="no-referrer">
+            <span id="animation-hidden" class="animation-hidden" hidden>GIF hidden — opening may animate</span>
           </a>
           <div class="media-meta">
             <span id="media-dimensions"></span>
@@ -60,6 +61,7 @@
             <div class="actions">
               <button id="share-link" class="primary-action" type="button" hidden>share</button>
               <button id="copy-link" type="button" aria-live="polite">copy link</button>
+              <button id="toggle-animation" type="button" hidden>hide GIF</button>
               <a id="open-relay" href="#" target="_blank" rel="noopener noreferrer">open image</a>
             </div>
           </div>

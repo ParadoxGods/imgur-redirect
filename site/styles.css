@@ -1,8 +1,19 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+  --bg: #091114;
+  --surface: #0f1b20;
+  --surface-hover: #17262c;
+  --text: #dff8f0;
+  --muted: #9fb8b2;
+  --border: #607873;
+  --accent: #76f2c1;
+  --accent-ink: #091114;
+  --danger: #ff9b9b;
+  --media-bg: #000;
   font-family: Arial, Helvetica, sans-serif;
-  color: #111;
-  background: #fff;
+  color: var(--text);
+  background: var(--bg);
+  accent-color: var(--accent);
 }
 
 * {
@@ -14,7 +25,7 @@ body {
   min-width: 320px;
   min-height: 100%;
   margin: 0;
-  background: #fff;
+  background: var(--bg);
 }
 
 body {
@@ -68,53 +79,55 @@ a {
 
 .input-row input {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   padding: 8px 10px;
-  border: 1px solid #111;
+  border: 1px solid var(--border);
   border-radius: 0;
-  outline: none;
-  background: #fff;
+  color: var(--text);
+  background: var(--surface);
 }
 
-.input-row input:focus {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #111;
+.input-row input[aria-invalid="true"] {
+  border-color: var(--danger);
 }
 
 button,
 .actions a {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   padding: 8px 14px;
-  border: 1px solid #111;
+  border: 1px solid var(--border);
   border-radius: 0;
-  color: #111;
-  background: #fff;
+  color: var(--text);
+  background: var(--surface);
   text-decoration: none;
   cursor: pointer;
 }
 
 button:hover,
 .actions a:hover {
-  color: #fff;
-  background: #111;
+  border-color: var(--accent);
+  background: var(--surface-hover);
 }
 
 .primary-action {
-  color: #fff;
-  background: #111;
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  background: var(--accent);
 }
 
 .primary-action:hover {
-  color: #111;
-  background: #fff;
+  color: var(--text);
+  background: var(--surface-hover);
 }
 
+input:focus-visible,
 button:focus-visible,
 .actions a:focus-visible,
 .image-stage:focus-visible {
-  outline: 3px solid #111;
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -125,13 +138,13 @@ button:focus-visible,
 .status {
   display: block;
   margin-bottom: 12px;
-  color: #555;
+  color: var(--muted);
   font-size: 0.8rem;
 }
 
 .message-panel {
   padding-block: 24px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border);
 }
 
 .message-panel p,
@@ -145,13 +158,13 @@ button:focus-visible,
 }
 
 .error {
-  color: #9b0000;
+  color: var(--danger);
 }
 
 .source {
   margin: 0;
   overflow-wrap: anywhere;
-  color: #666;
+  color: var(--muted);
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.75rem;
 }
@@ -163,8 +176,8 @@ button:focus-visible,
   max-height: 78vh;
   place-items: center;
   overflow: auto;
-  border: 1px solid #ddd;
-  background: #fafafa;
+  border: 1px solid var(--border);
+  background: var(--media-bg);
 }
 
 .image-stage img {
@@ -174,6 +187,11 @@ button:focus-visible,
   object-fit: contain;
 }
 
+.animation-hidden {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .media-meta {
   padding-top: 12px;
 }
@@ -181,7 +199,7 @@ button:focus-visible,
 #media-dimensions {
   display: block;
   margin-bottom: 5px;
-  color: #555;
+  color: var(--muted);
   font-size: 0.8rem;
 }
 
@@ -226,5 +244,14 @@ button:focus-visible,
   *::before,
   *::after {
     scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  input:focus-visible,
+  button:focus-visible,
+  .actions a:focus-visible,
+  .image-stage:focus-visible {
+    outline-color: Highlight;
   }
 }

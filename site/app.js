@@ -1,5 +1,6 @@
 const IMGUR_HOSTS = new Set(["imgur.com", "www.imgur.com", "m.imgur.com", "i.imgur.com"]);
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+const VIDEO_EXTENSIONS = new Set(["mp4", "webm"]);
 const IMGUR_ID_PATTERN = "[A-Za-z0-9]{5,32}";
 const MAX_INPUT_LENGTH = 2048;
 const MARKDOWN_ENDPOINT = "https://api.github.com/markdown";
@@ -15,6 +16,7 @@ const INPUT_ERROR_CODES = new Set([
   "invalid_host",
   "unsafe_url",
   "unsupported_type",
+  "unsupported_video",
   "not_direct_image",
   "unsupported_collection",
   "unsupported_path"
@@ -39,10 +41,16 @@ function normalizeExtension(extension) {
 
 function ensureSupportedExtension(extension) {
   const normalized = normalizeExtension(extension);
+  if (VIDEO_EXTENSIONS.has(normalized)) {
+    portalError(
+      "unsupported_video",
+      "MP4 and WebM are video formats. GitHub Camo relays images only, so this static portal cannot relay Imgur video through the UK block. A separate video relay is required."
+    );
+  }
   if (!IMAGE_EXTENSIONS.has(normalized)) {
     portalError(
       "unsupported_type",
-      "Only JPEG, PNG, GIF, and WebP images are supported. SVG and video links are intentionally rejected."
+      "Only JPEG, PNG, GIF, and WebP images are supported. SVG and other file types are intentionally rejected."
     );
   }
   return normalized;
@@ -102,7 +110,7 @@ export function normalizeImgurUrl(rawValue) {
     if (!match) {
       portalError(
         "not_direct_image",
-        "An i.imgur.com link must end with a supported image extension, such as .jpg or .png."
+        "An i.imgur.com link must end with a supported image extension, such as .jpg, .png, or .gif."
       );
     }
     [, id, extension] = match;
@@ -366,6 +374,8 @@ function initializePortal() {
     mediaPanel: document.querySelector("#media-panel"),
     mediaImage: document.querySelector("#media-image"),
     imageLink: document.querySelector("#image-link"),
+    animationHidden: document.querySelector("#animation-hidden"),
+    toggleAnimation: document.querySelector("#toggle-animation"),
     dimensions: document.querySelector("#media-dimensions"),
     canonicalSource: document.querySelector("#canonical-source"),
     shareLink: document.querySelector("#share-link"),
@@ -406,7 +416,10 @@ function initializePortal() {
     elements.badge.textContent = label;
     elements.loadingSource.textContent = normalized.sourceUrl;
     elements.mediaImage.removeAttribute("src");
+    elements.mediaImage.hidden = false;
     elements.mediaImage.alt = "";
+    elements.animationHidden.hidden = true;
+    elements.toggleAnimation.hidden = true;
     scrollViewerIntoView();
   }
 
@@ -416,7 +429,11 @@ function initializePortal() {
     elements.badge.textContent = "Could not load";
     const knownError = error instanceof PortalError;
     elements.errorTitle.textContent =
-      error?.code === "unsupported_collection" ? "That link contains more than one possible image." : "That image could not be relayed.";
+      error?.code === "unsupported_collection"
+        ? "That link contains more than one possible image."
+        : error?.code === "unsupported_video"
+          ? "That Imgur video cannot be relayed here."
+          : "That image could not be relayed.";
     elements.errorMessage.textContent = knownError
       ? error.message
       : "An unexpected error occurred while preparing the image. Try again.";
@@ -460,6 +477,18 @@ function initializePortal() {
     });
   }
 
+  function setGifVisibility(showGif) {
+    elements.mediaImage.hidden = !showGif;
+    elements.animationHidden.hidden = showGif;
+    elements.toggleAnimation.textContent = showGif ? "hide GIF" : "show GIF";
+    elements.imageLink.setAttribute(
+      "aria-label",
+      showGif
+        ? "Open the displayed GIF in a new tab"
+        : "Open the hidden GIF in a new tab; it may animate"
+    );
+  }
+
   function showMedia(normalized, imageUrl, mode) {
     updatePanels("media");
     elements.badge.textContent = mode === "relay" ? "ready" : "direct Imgur connection";
@@ -468,6 +497,15 @@ function initializePortal() {
     elements.canonicalSource.textContent = normalized.sourceUrl;
     elements.imageLink.href = imageUrl;
     elements.openRelay.href = imageUrl;
+    const isGif = normalized.extension === "gif";
+    elements.toggleAnimation.hidden = !isGif;
+    if (isGif) {
+      setGifVisibility(!reduceMotion);
+    } else {
+      elements.mediaImage.hidden = false;
+      elements.animationHidden.hidden = true;
+      elements.imageLink.setAttribute("aria-label", "Open the displayed image in a new tab");
+    }
     elements.input.setAttribute("aria-invalid", "false");
     document.title = `${normalized.id}.${normalized.extension} · Imgur Portal`;
   }
@@ -520,7 +558,14 @@ function initializePortal() {
       if (error?.code === "image_load_failed" && normalized && !direct) {
         removeCachedRelay(normalized.sourceUrl);
       }
-      showError(error);
+      const displayedError =
+        error?.code === "image_load_failed" && normalized?.extension === "gif"
+          ? new PortalError(
+              "image_load_failed",
+              "GitHub's relay could not return this GIF. It may have been removed, or the animation may be larger than GitHub Camo will relay."
+            )
+          : error;
+      showError(displayedError);
     } finally {
       if (requestId === activeRequest) activeAbortController = null;
     }
@@ -579,7 +624,10 @@ function initializePortal() {
     elements.mediaImage.onload = null;
     elements.mediaImage.onerror = null;
     elements.mediaImage.removeAttribute("src");
+    elements.mediaImage.hidden = false;
     elements.mediaImage.alt = "";
+    elements.animationHidden.hidden = true;
+    elements.toggleAnimation.hidden = true;
     elements.input.value = "";
     elements.input.setAttribute("aria-invalid", "false");
     elements.viewer.setAttribute("aria-busy", "false");
@@ -609,6 +657,9 @@ function initializePortal() {
   });
   elements.shareLink.addEventListener("click", () => void sharePortalLink());
   elements.copyLink.addEventListener("click", () => void copyPortalLink());
+  elements.toggleAnimation.addEventListener("click", () => {
+    setGifVisibility(elements.mediaImage.hidden);
+  });
   elements.retry.addEventListener("click", () => {
     if (currentImage) void displayImage(currentImage.sourceUrl, { historyMode: "replace", forceRelay: true });
   });
